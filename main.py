@@ -1,13 +1,18 @@
 #This file was created by: Miguel Zalapa
 # content from kids can code: http://kidscancode.org/blog/
-
+# sources: Classmate (Mihael Falcon), Chat GPT, My sister (Karina Zalapa), Chris Cozort
 # import libraries and modules
-#Goals: two players, health bar, mobs that chase you, coins/mystery boxes
+#Goals: two players, mobs (resemble coins that you collect), timer that closes the game after it finshes, ending screen
 import pygame as pg
-from pygame.sprite import Sprite
+from pygame.sprite import Sprite 
 from random import randint
 import os
 from settings import *
+start_time = pg.time.get_ticks()
+game_over = False
+countdown_time = 15000  # 15 seconds in milliseconds
+last_platform_time = pg.time.get_ticks()
+
 
 vec = pg.math.Vector2
 
@@ -99,7 +104,6 @@ class Platform(Sprite):
                 self.speed = -self.speed
         if self.category == "lava":
             self.image.fill(ORANGE)
-
 class Mob(Sprite):
     def __init__(self, x, y, w, h, category):
         Sprite.__init__(self)
@@ -149,7 +153,7 @@ all_sprites.add(player)
 
 # add instances to groups
 
-for i in range(15):
+for i in range(20):
     m = Mob(randint(0,WIDTH), randint(0,HEIGHT), 25, 25, "lava")
     all_sprites.add(m)
     all_mobs.add(m)
@@ -170,6 +174,15 @@ while running:
         # check for closed window
         if event.type == pg.QUIT:
             running = False
+    # Check if it's time to generate a new platform
+    current_time = pg.time.get_ticks()
+    if current_time - last_platform_time > 2000:  # Generate a new platform every 2000 milliseconds (2 seconds)
+        last_platform_time = current_time
+
+        # Generate a new platform at a random location
+        new_platform = Platform(randint(0, WIDTH - 50), randint(0, HEIGHT - 20), 50, 10, "static")
+        all_sprites.add(new_platform)
+        all_platforms.add(new_platform)
     
     ############ Update ##############
     # update all sprites
@@ -178,6 +191,7 @@ while running:
     for mob in mob_collisions:
         # Perform any additional actions when a mob is touched (e.g., increase score)
         player.hitpoints -= 10  # Adjust as needed
+    # Generate a new platform at a fixed interval
     if player.rect.y > HEIGHT:
         player.pos = vec(WIDTH/2, HEIGHT/2)
     # this is what prevents the player from falling through the platform when falling down...
@@ -198,6 +212,12 @@ while running:
                 player.rect.top = hits[0].rect.bottom
                 player.acc.y = 5
                 player.vel.y = 0
+    # Calculate elapsed time in milliseconds
+    elapsed_time = pg.time.get_ticks() - start_time
+
+    # Check if 30 seconds have passed
+    if elapsed_time >= 15000:  # 15 seconds in milliseconds
+        game_over = True  # Close the game
 
     mhits = pg.sprite.spritecollide(player, all_mobs, False)
     if mhits:
@@ -212,6 +232,12 @@ while running:
     
     # buffer - after drawing everything, flip display
     pg.display.flip()
+    if game_over:
+        screen.fill(BLACK)
+        draw_text("Time Ran Out:(", 48, WHITE, WIDTH / 2, HEIGHT / 2)
+        pg.display.flip()
+        pg.time.delay(3000)  # Pause for 3 seconds (3000 milliseconds)
+        running = False  # Close the game
 
 pg.quit()
 
